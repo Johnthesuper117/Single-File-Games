@@ -221,6 +221,8 @@
     const emptyEl = document.getElementById('empty');
     const EMPTY_SEARCH_MSG = emptyEl.textContent;
     const EMPTY_NO_FILES_MSG = 'No game files were found. Ensure the /games directory exists and is accessible.';
+    const EMPTY_FILE_PROTOCOL_MSG = 'This page was opened with file://, so game discovery is blocked by browser security. Run a local web server or use GitHub Pages.';
+    const CACHE_SCOPE_DEPTH = 3;
     let cards = [];
 
     function safeDecodeURIComponent(value) {
@@ -273,10 +275,18 @@
     }
 
     async function listGameFiles() {
-      const cacheKey = 'single-file-games:list:v1';
+      if (location.protocol === 'file:') return [];
+
+      const cacheScope = location.pathname.split('/').slice(0, CACHE_SCOPE_DEPTH).join('/') || location.pathname;
+      const cacheKey = `single-file-games:list:v1:${cacheScope}`;
       try {
         const cached = JSON.parse(sessionStorage.getItem(cacheKey) || 'null');
-        if (Array.isArray(cached)) return cached;
+        if (Array.isArray(cached) && cached.every(item => typeof item === 'string')) {
+          return cached
+            .map(item => item.trim())
+            .filter(isSafeHtmlFileName)
+            .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+        }
       } catch {
         // Ignore cache parse errors
       }
@@ -307,6 +317,8 @@
               const files = items
                 .filter(item => item && item.type === 'file' && typeof item.name === 'string' && /\.html$/i.test(item.name))
                 .map(item => item.name)
+                .map(item => item.trim())
+                .filter(isSafeHtmlFileName)
                 .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
               try {
                 sessionStorage.setItem(cacheKey, JSON.stringify(files));
@@ -332,7 +344,8 @@
           .map(href => safeDecodeURIComponent(href.trim()))
           .map(href => href.replace(/\/+$/, ''))
           .map(href => href.split('/').pop() || '')
-          .filter(name => /\.html$/i.test(name));
+          .map(name => name.trim())
+          .filter(isSafeHtmlFileName);
         const files = Array.from(new Set(links)).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
         try {
           sessionStorage.setItem(cacheKey, JSON.stringify(files));
@@ -432,7 +445,7 @@
       filterCards('');
       if (cards.length === 0) {
         emptyEl.style.display = 'block';
-        emptyEl.textContent = EMPTY_NO_FILES_MSG;
+        emptyEl.textContent = location.protocol === 'file:' ? EMPTY_FILE_PROTOCOL_MSG : EMPTY_NO_FILES_MSG;
       }
     })();
   </script>

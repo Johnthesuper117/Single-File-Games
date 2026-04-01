@@ -4,7 +4,7 @@ A collection of classic browser games — each game is a single, self-contained 
 
 ## 🕹️ Play
 
-Open `index.html` in your browser to browse and launch all available games.
+Open the served `index.html` page in your browser to browse and launch all available games.
 
 ## 🗂️ Games
 
@@ -20,10 +20,12 @@ Open `index.html` in your browser to browse and launch all available games.
 ## 🚀 How to Use
 
 1. Clone or download this repository.
-2. Open `index.html` in any modern web browser (or via GitHub Pages).
-3. Click a game card to start playing instantly.
+2. Serve the repository with a simple static web server (or use GitHub Pages).
+3. Open the served `index.html` URL in a modern browser.
+4. Click a game card to start playing instantly.
 
-All games run entirely in the browser — no server, no build step, no dependencies.
+All games run entirely in the browser with no build step or dependencies.  
+Note: opening `index.html` directly with `file://` is not supported for automatic game discovery.
 
 ## ➕ Adding a New Game
 
