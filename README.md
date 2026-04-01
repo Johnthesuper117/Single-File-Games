@@ -1,1 +1,26 @@
-# Single-File-Games
+# Single-File Games 🎮
+
+A collection of classic browser games — each game is a single, self-contained HTML file with no dependencies or installs required.
+
+## 🕹️ Play
+
+Open `index.html` in your browser to browse and launch all available games.
+
+## 🗂️ Games
+
+| Game | Description |
+|------|-------------|
+| 🐍 [Snake](games/snake.html) | Eat food, grow longer, avoid the walls |
+| ⭕ [Tic-Tac-Toe](games/tictactoe.html) | Play vs a friend or the minimax AI |
+| 🃏 [Memory Cards](games/memory.html) | Flip and match pairs of cards |
+| 🧱 [Breakout](games/breakout.html) | Bounce the ball and break all the bricks |
+| 🔢 [2048](games/2048.html) | Slide tiles and reach 2048 |
+| 💣 [Minesweeper](games/minesweeper.html) | Uncover safe squares and flag the mines |
+
+## 🚀 How to Use
+
+1. Clone or download this repository.
+2. Open `index.html` in any modern web browser.
+3. Click a game card to start playing instantly.
+
+All games run entirely in the browser — no server, no build step, no dependencies.
