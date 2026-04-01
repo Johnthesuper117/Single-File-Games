@@ -203,95 +203,7 @@
 
   <main>
     <p id="game-count"></p>
-    <div id="grid">
-
-      <!-- Snake -->
-      <a class="card accent-green" href="games/snake.html">
-        <div class="card-banner">🐍</div>
-        <div class="card-body">
-          <div class="card-title">Snake</div>
-          <div class="card-desc">Eat food, grow longer, and don't hit the walls or yourself. A timeless arcade classic.</div>
-          <div class="card-meta">
-            <span class="tag">Arcade</span>
-            <span class="tag">Keyboard</span>
-          </div>
-          <span class="play-btn">▶ Play</span>
-        </div>
-      </a>
-
-      <!-- Tic-Tac-Toe -->
-      <a class="card accent-purple" href="games/tictactoe.html">
-        <div class="card-banner">⭕</div>
-        <div class="card-body">
-          <div class="card-title">Tic-Tac-Toe</div>
-          <div class="card-desc">Play against a friend or challenge the unbeatable minimax AI. Three in a row wins!</div>
-          <div class="card-meta">
-            <span class="tag">Strategy</span>
-            <span class="tag">2-Player</span>
-            <span class="tag">AI</span>
-          </div>
-          <span class="play-btn">▶ Play</span>
-        </div>
-      </a>
-
-      <!-- Memory -->
-      <a class="card accent-orange" href="games/memory.html">
-        <div class="card-banner">🃏</div>
-        <div class="card-body">
-          <div class="card-title">Memory Cards</div>
-          <div class="card-desc">Flip cards and find matching pairs. Test your memory and try to use as few moves as you can!</div>
-          <div class="card-meta">
-            <span class="tag">Puzzle</span>
-            <span class="tag">Memory</span>
-          </div>
-          <span class="play-btn">▶ Play</span>
-        </div>
-      </a>
-
-      <!-- Breakout -->
-      <a class="card accent-sky" href="games/breakout.html">
-        <div class="card-banner">🧱</div>
-        <div class="card-body">
-          <div class="card-title">Breakout</div>
-          <div class="card-desc">Keep the ball bouncing with your paddle and smash through all the bricks to win.</div>
-          <div class="card-meta">
-            <span class="tag">Arcade</span>
-            <span class="tag">Mouse</span>
-            <span class="tag">Keyboard</span>
-          </div>
-          <span class="play-btn">▶ Play</span>
-        </div>
-      </a>
-
-      <!-- 2048 -->
-      <a class="card accent-yellow" href="games/2048.html">
-        <div class="card-banner">🔢</div>
-        <div class="card-body">
-          <div class="card-title">2048</div>
-          <div class="card-desc">Slide and merge numbered tiles to reach the 2048 tile. Simple to learn, hard to master.</div>
-          <div class="card-meta">
-            <span class="tag">Puzzle</span>
-            <span class="tag">Swipe</span>
-          </div>
-          <span class="play-btn">▶ Play</span>
-        </div>
-      </a>
-
-      <!-- Minesweeper -->
-      <a class="card accent-pink" href="games/minesweeper.html">
-        <div class="card-banner">💣</div>
-        <div class="card-body">
-          <div class="card-title">Minesweeper</div>
-          <div class="card-desc">Uncover safe squares and flag the mines. Easy, Medium, or Hard — how brave are you?</div>
-          <div class="card-meta">
-            <span class="tag">Logic</span>
-            <span class="tag">Difficulty levels</span>
-          </div>
-          <span class="play-btn">▶ Play</span>
-        </div>
-      </a>
-
-    </div>
+    <div id="grid"></div>
     <div id="empty">No games matched your search.</div>
   </main>
 
@@ -300,10 +212,121 @@
   </footer>
 
   <script>
-    const cards = Array.from(document.querySelectorAll('.card'));
+    const ACCENTS = ['accent-green', 'accent-purple', 'accent-orange', 'accent-sky', 'accent-yellow', 'accent-pink'];
+    const DEFAULT_DESC = 'Single-file browser game.';
+    const gridEl = document.getElementById('grid');
     const searchEl = document.getElementById('search');
     const gameCountEl = document.getElementById('game-count');
     const emptyEl = document.getElementById('empty');
+    let cards = [];
+
+    function formatName(fileName) {
+      const name = fileName.replace(/\.html$/i, '').replace(/[-_]+/g, ' ');
+      return name.replace(/\b\w/g, char => char.toUpperCase());
+    }
+
+    function chooseEmoji(name) {
+      const lower = name.toLowerCase();
+      if (lower.includes('snake')) return '🐍';
+      if (lower.includes('tic')) return '⭕';
+      if (lower.includes('memory')) return '🃏';
+      if (lower.includes('breakout')) return '🧱';
+      if (lower.includes('mine')) return '💣';
+      if (lower.includes('2048')) return '🔢';
+      return '🎮';
+    }
+
+    async function parseGameTitleAndDescription(fileName) {
+      try {
+        const res = await fetch(`games/${encodeURIComponent(fileName)}`);
+        if (!res.ok) return { title: formatName(fileName), desc: DEFAULT_DESC };
+        const html = await res.text();
+        const doc = new DOMParser().parseFromString(html, 'text/html');
+        const title = (doc.title || '').trim() || formatName(fileName);
+        const metaDesc = (doc.querySelector('meta[name="description"]')?.content || '').trim();
+        return {
+          title,
+          desc: metaDesc || DEFAULT_DESC,
+        };
+      } catch {
+        return { title: formatName(fileName), desc: DEFAULT_DESC };
+      }
+    }
+
+    async function listGameFiles() {
+      try {
+        const res = await fetch('games/');
+        if (!res.ok) return [];
+        const html = await res.text();
+        const doc = new DOMParser().parseFromString(html, 'text/html');
+        const links = Array.from(doc.querySelectorAll('a[href]'))
+          .map(link => link.getAttribute('href') || '')
+          .map(href => href.split('#')[0].split('?')[0])
+          .map(href => decodeURIComponent(href.trim()))
+          .map(href => href.replace(/\/+$/, ''))
+          .map(href => href.split('/').pop() || '')
+          .filter(name => /\.html$/i.test(name));
+        return Array.from(new Set(links)).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+      } catch {
+        return [];
+      }
+    }
+
+    function createCard(game, i) {
+      const card = document.createElement('a');
+      card.className = `card ${ACCENTS[i % ACCENTS.length]}`;
+      card.href = `games/${game.file}`;
+
+      const banner = document.createElement('div');
+      banner.className = 'card-banner';
+      banner.textContent = chooseEmoji(game.title);
+
+      const body = document.createElement('div');
+      body.className = 'card-body';
+
+      const title = document.createElement('div');
+      title.className = 'card-title';
+      title.textContent = game.title;
+
+      const desc = document.createElement('div');
+      desc.className = 'card-desc';
+      desc.textContent = game.desc;
+
+      const meta = document.createElement('div');
+      meta.className = 'card-meta';
+
+      const tagSingleFile = document.createElement('span');
+      tagSingleFile.className = 'tag';
+      tagSingleFile.textContent = 'Single-file';
+      meta.appendChild(tagSingleFile);
+
+      const tagHtml = document.createElement('span');
+      tagHtml.className = 'tag';
+      tagHtml.textContent = 'HTML';
+      meta.appendChild(tagHtml);
+
+      const button = document.createElement('span');
+      button.className = 'play-btn';
+      button.textContent = '▶ Play';
+
+      body.append(title, desc, meta, button);
+      card.append(banner, body);
+      return card;
+    }
+
+    async function renderCards() {
+      const files = await listGameFiles();
+      const games = await Promise.all(
+        files.map(async file => {
+          const details = await parseGameTitleAndDescription(file);
+          return { file, ...details };
+        })
+      );
+
+      gridEl.innerHTML = '';
+      games.forEach((game, i) => gridEl.appendChild(createCard(game, i)));
+      cards = Array.from(document.querySelectorAll('.card'));
+    }
 
     function updateCount(n) {
       gameCountEl.textContent = n === cards.length
@@ -325,7 +348,15 @@
     }
 
     searchEl.addEventListener('input', e => filterCards(e.target.value));
-    updateCount(cards.length);
+
+    (async function init() {
+      await renderCards();
+      filterCards('');
+      if (cards.length === 0) {
+        emptyEl.style.display = 'block';
+        emptyEl.textContent = 'No game files were found in /games. Run this through a local web server so folder listing can be read.';
+      }
+    })();
   </script>
 </body>
 </html>
