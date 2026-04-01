@@ -254,6 +254,26 @@
     }
 
     async function listGameFiles() {
+      const repoMatch = location.pathname.match(/\/([^/]+)\/([^/]+)\/(?:index\.html)?$/i);
+      if (repoMatch) {
+        const owner = repoMatch[1];
+        const repo = repoMatch[2];
+        try {
+          const apiRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/games`);
+          if (apiRes.ok) {
+            const items = await apiRes.json();
+            if (Array.isArray(items)) {
+              return items
+                .filter(item => item && item.type === 'file' && typeof item.name === 'string' && /\.html$/i.test(item.name))
+                .map(item => item.name)
+                .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+            }
+          }
+        } catch {
+          // Fallback below
+        }
+      }
+
       try {
         const res = await fetch('games/');
         if (!res.ok) return [];
