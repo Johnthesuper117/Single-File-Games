@@ -91,12 +91,26 @@
 
     let board, current, gameOver, vsAI, scores;
 
+    function loadScores() {
+      try {
+        const stored = localStorage.getItem('ttt-scores');
+        return stored ? JSON.parse(stored) : { X: 0, O: 0, D: 0 };
+      } catch { return { X: 0, O: 0, D: 0 }; }
+    }
+
+    function saveScores() {
+      try { localStorage.setItem('ttt-scores', JSON.stringify(scores)); } catch { /* ignore */ }
+    }
+
     function init() {
       board = Array(9).fill('');
       current = 'X';
       gameOver = false;
-      if (!scores) scores = { X: 0, O: 0, D: 0 };
+      if (!scores) scores = loadScores();
       if (vsAI === undefined) vsAI = false;
+      xwEl.textContent = scores.X;
+      owEl.textContent = scores.O;
+      dwEl.textContent = scores.D;
       render();
       updateStatus();
     }
@@ -163,6 +177,7 @@
         xwEl.textContent = scores.X;
         owEl.textContent = scores.O;
       }
+      saveScores();
     }
 
     function cpuMove() {
