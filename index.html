@@ -348,7 +348,7 @@
     function createCard(game, i) {
       const card = document.createElement('a');
       card.className = `card ${ACCENTS[i % ACCENTS.length]}`;
-      card.href = `${GAMES_DIR}/${game.file}`;
+      card.href = `${GAMES_DIR}/${encodeURIComponent(game.file)}`;
 
       const banner = document.createElement('div');
       banner.className = 'card-banner';
