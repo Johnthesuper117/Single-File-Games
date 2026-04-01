@@ -212,13 +212,29 @@
   </footer>
 
   <script>
+    const GAMES_DIR = 'games';
     const ACCENTS = ['accent-green', 'accent-purple', 'accent-orange', 'accent-sky', 'accent-yellow', 'accent-pink'];
-    const DEFAULT_DESC = 'Single-file browser game.';
+    const DEFAULT_DESC = 'Single-file browser game';
     const gridEl = document.getElementById('grid');
     const searchEl = document.getElementById('search');
     const gameCountEl = document.getElementById('game-count');
     const emptyEl = document.getElementById('empty');
+    const EMPTY_SEARCH_MSG = emptyEl.textContent;
+    const EMPTY_NO_FILES_MSG = 'No game files were found. Ensure the /games directory exists and is accessible.';
     let cards = [];
+
+    function safeDecodeURIComponent(value) {
+      try {
+        return decodeURIComponent(value);
+      } catch {
+        return value;
+      }
+    }
+
+    function isSafeHtmlFileName(fileName) {
+      const decoded = safeDecodeURIComponent(fileName);
+      return decoded === fileName && /^[^/\\]+\.html$/i.test(fileName) && !fileName.includes('..');
+    }
 
     function formatName(fileName) {
       const name = fileName.replace(/\.html$/i, '').replace(/[-_]+/g, ' ');
@@ -237,8 +253,11 @@
     }
 
     async function parseGameTitleAndDescription(fileName) {
+      if (!isSafeHtmlFileName(fileName)) {
+        return { title: formatName(fileName), desc: DEFAULT_DESC };
+      }
       try {
-        const res = await fetch(`games/${encodeURIComponent(fileName)}`);
+        const res = await fetch(`${GAMES_DIR}/${encodeURIComponent(fileName)}`);
         if (!res.ok) return { title: formatName(fileName), desc: DEFAULT_DESC };
         const html = await res.text();
         const doc = new DOMParser().parseFromString(html, 'text/html');
@@ -254,19 +273,47 @@
     }
 
     async function listGameFiles() {
-      const repoMatch = location.pathname.match(/\/([^/]+)\/([^/]+)\/(?:index\.html)?$/i);
-      if (repoMatch) {
-        const owner = repoMatch[1];
-        const repo = repoMatch[2];
+      const cacheKey = 'single-file-games:list:v1';
+      try {
+        const cached = JSON.parse(sessionStorage.getItem(cacheKey) || 'null');
+        if (Array.isArray(cached)) return cached;
+      } catch {
+        // Ignore cache parse errors
+      }
+
+      const isValidGitHubIdentifier = value => /^[A-Za-z0-9._-]+$/.test(value);
+      let owner = '';
+      let repo = '';
+      const host = location.hostname.toLowerCase();
+      const pathParts = location.pathname.split('/').filter(Boolean);
+
+      if (host.endsWith('.github.io')) {
+        owner = host.replace(/\.github\.io$/, '');
+        repo = pathParts[0] || '';
+      } else if (pathParts.length >= 2) {
+        owner = pathParts[0];
+        repo = pathParts[1];
+      }
+
+      if (owner && repo && isValidGitHubIdentifier(owner) && isValidGitHubIdentifier(repo)) {
         try {
-          const apiRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/games`);
+          const apiUrl = new URL(
+            `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/${GAMES_DIR}`
+          );
+          const apiRes = await fetch(apiUrl.toString());
           if (apiRes.ok) {
             const items = await apiRes.json();
             if (Array.isArray(items)) {
-              return items
+              const files = items
                 .filter(item => item && item.type === 'file' && typeof item.name === 'string' && /\.html$/i.test(item.name))
                 .map(item => item.name)
                 .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+              try {
+                sessionStorage.setItem(cacheKey, JSON.stringify(files));
+              } catch {
+                // Ignore sessionStorage errors (privacy mode/quota)
+              }
+              return files;
             }
           }
         } catch {
@@ -275,18 +322,24 @@
       }
 
       try {
-        const res = await fetch('games/');
+        const res = await fetch(`${GAMES_DIR}/`);
         if (!res.ok) return [];
         const html = await res.text();
         const doc = new DOMParser().parseFromString(html, 'text/html');
         const links = Array.from(doc.querySelectorAll('a[href]'))
           .map(link => link.getAttribute('href') || '')
           .map(href => href.split('#')[0].split('?')[0])
-          .map(href => decodeURIComponent(href.trim()))
+          .map(href => safeDecodeURIComponent(href.trim()))
           .map(href => href.replace(/\/+$/, ''))
           .map(href => href.split('/').pop() || '')
           .filter(name => /\.html$/i.test(name));
-        return Array.from(new Set(links)).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+        const files = Array.from(new Set(links)).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+        try {
+          sessionStorage.setItem(cacheKey, JSON.stringify(files));
+        } catch {
+          // Ignore sessionStorage errors (privacy mode/quota)
+        }
+        return files;
       } catch {
         return [];
       }
@@ -295,7 +348,7 @@
     function createCard(game, i) {
       const card = document.createElement('a');
       card.className = `card ${ACCENTS[i % ACCENTS.length]}`;
-      card.href = `games/${game.file}`;
+      card.href = `${GAMES_DIR}/${game.file}`;
 
       const banner = document.createElement('div');
       banner.className = 'card-banner';
@@ -363,7 +416,12 @@
         card.style.display = visible ? '' : 'none';
         if (visible) shown++;
       });
-      emptyEl.style.display = shown === 0 ? 'block' : 'none';
+      if (shown === 0) {
+        emptyEl.style.display = 'block';
+        emptyEl.textContent = cards.length === 0 ? EMPTY_NO_FILES_MSG : EMPTY_SEARCH_MSG;
+      } else {
+        emptyEl.style.display = 'none';
+      }
       updateCount(shown);
     }
 
@@ -374,7 +432,7 @@
       filterCards('');
       if (cards.length === 0) {
         emptyEl.style.display = 'block';
-        emptyEl.textContent = 'No game files were found in /games. Run this through a local web server so folder listing can be read.';
+        emptyEl.textContent = EMPTY_NO_FILES_MSG;
       }
     })();
   </script>
