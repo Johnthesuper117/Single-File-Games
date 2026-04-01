@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tic-Tac-Toe</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #1a1a2e;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      font-family: 'Segoe UI', sans-serif;
+      color: #eee;
+    }
+    h1 { font-size: 2rem; margin-bottom: 0.5rem; color: #a78bfa; }
+    #status { font-size: 1.1rem; margin-bottom: 1.2rem; min-height: 1.5rem; }
+    #board {
+      display: grid;
+      grid-template-columns: repeat(3, 110px);
+      grid-template-rows: repeat(3, 110px);
+      gap: 8px;
+    }
+    .cell {
+      background: #16213e;
+      border: 2px solid #334155;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 3.5rem;
+      cursor: pointer;
+      transition: background 0.15s;
+      user-select: none;
+    }
+    .cell:hover:not(.taken) { background: #1e293b; }
+    .cell.x { color: #f87171; }
+    .cell.o { color: #60a5fa; }
+    .cell.win { background: #1e3a29; border-color: #4ade80; }
+    #controls { margin-top: 1.5rem; display: flex; gap: 1rem; }
+    button {
+      padding: 0.5rem 1.4rem;
+      border: none;
+      border-radius: 6px;
+      font-size: 1rem;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    #restart { background: #a78bfa; color: #1a1a2e; }
+    #restart:hover { background: #7c3aed; color: #fff; }
+    #toggleAI { background: #334155; color: #eee; }
+    #toggleAI:hover { background: #475569; }
+    a.back { margin-top: 1.2rem; color: #94a3b8; text-decoration: none; font-size: 0.9rem; }
+    a.back:hover { color: #a78bfa; }
+    #scores {
+      display: flex; gap: 2rem; margin-bottom: 1rem; font-size: 1rem; color: #94a3b8;
+    }
+    #scores span { font-weight: bold; color: #eee; }
+  </style>
+</head>
+<body>
+  <h1>⭕ Tic-Tac-Toe</h1>
+  <div id="scores">
+    X Wins: <span id="xw">0</span> &nbsp;|&nbsp; O Wins: <span id="ow">0</span> &nbsp;|&nbsp; Draws: <span id="dw">0</span>
+  </div>
+  <div id="status">Player X's turn</div>
+  <div id="board"></div>
+  <div id="controls">
+    <button id="restart">Restart</button>
+    <button id="toggleAI">vs CPU: OFF</button>
+  </div>
+  <a class="back" href="../index.html">← Back to Games</a>
+
+  <script>
+    const boardEl = document.getElementById('board');
+    const statusEl = document.getElementById('status');
+    const restartBtn = document.getElementById('restart');
+    const toggleAIBtn = document.getElementById('toggleAI');
+    const xwEl = document.getElementById('xw');
+    const owEl = document.getElementById('ow');
+    const dwEl = document.getElementById('dw');
+
+    const WINS = [
+      [0,1,2],[3,4,5],[6,7,8],
+      [0,3,6],[1,4,7],[2,5,8],
+      [0,4,8],[2,4,6]
+    ];
+
+    let board, current, gameOver, vsAI, scores;
+
+    function init() {
+      board = Array(9).fill('');
+      current = 'X';
+      gameOver = false;
+      if (!scores) scores = { X: 0, O: 0, D: 0 };
+      if (vsAI === undefined) vsAI = false;
+      render();
+      updateStatus();
+    }
+
+    function render() {
+      boardEl.innerHTML = '';
+      board.forEach((val, i) => {
+        const cell = document.createElement('div');
+        cell.className = 'cell' + (val ? ' taken ' + val.toLowerCase() : '');
+        cell.textContent = val;
+        cell.addEventListener('click', () => handleClick(i));
+        boardEl.appendChild(cell);
+      });
+    }
+
+    function highlightWin(combo) {
+      const cells = boardEl.querySelectorAll('.cell');
+      combo.forEach(i => cells[i].classList.add('win'));
+    }
+
+    function checkWinner(b) {
+      for (const combo of WINS) {
+        const [first, second, third] = combo;
+        if (b[first] && b[first] === b[second] && b[first] === b[third]) return { winner: b[first], combo };
+      }
+      if (b.every(v => v)) return { winner: 'draw' };
+      return null;
+    }
+
+    function updateStatus() {
+      statusEl.textContent = gameOver ? '' : `Player ${current}'s turn${vsAI && current === 'O' ? ' (CPU)' : ''}`;
+    }
+
+    function handleClick(i) {
+      if (gameOver || board[i] || (vsAI && current === 'O')) return;
+      makeMove(i);
+    }
+
+    function makeMove(i) {
+      board[i] = current;
+      render();
+      const result = checkWinner(board);
+      if (result) {
+        endGame(result);
+        return;
+      }
+      current = current === 'X' ? 'O' : 'X';
+      updateStatus();
+      if (vsAI && current === 'O' && !gameOver) {
+        setTimeout(cpuMove, 400);
+      }
+    }
+
+    function endGame(result) {
+      gameOver = true;
+      if (result.winner === 'draw') {
+        statusEl.textContent = "It's a draw!";
+        scores.D++;
+        dwEl.textContent = scores.D;
+      } else {
+        statusEl.textContent = `Player ${result.winner} wins! 🎉`;
+        highlightWin(result.combo);
+        scores[result.winner]++;
+        xwEl.textContent = scores.X;
+        owEl.textContent = scores.O;
+      }
+    }
+
+    function cpuMove() {
+      // Minimax AI
+      let best = -Infinity, bestIdx = -1;
+      for (let i = 0; i < 9; i++) {
+        if (!board[i]) {
+          board[i] = 'O';
+          const val = minimax(board, 0, false);
+          board[i] = '';
+          if (val > best) { best = val; bestIdx = i; }
+        }
+      }
+      if (bestIdx !== -1) makeMove(bestIdx);
+    }
+
+    function minimax(b, depth, isMax) {
+      const res = checkWinner(b);
+      if (res) {
+        if (res.winner === 'O') return 10 - depth;
+        if (res.winner === 'X') return depth - 10;
+        return 0;
+      }
+      if (isMax) {
+        let best = -Infinity;
+        for (let i = 0; i < 9; i++) {
+          if (!b[i]) { b[i] = 'O'; best = Math.max(best, minimax(b, depth+1, false)); b[i] = ''; }
+        }
+        return best;
+      } else {
+        let best = Infinity;
+        for (let i = 0; i < 9; i++) {
+          if (!b[i]) { b[i] = 'X'; best = Math.min(best, minimax(b, depth+1, true)); b[i] = ''; }
+        }
+        return best;
+      }
+    }
+
+    restartBtn.addEventListener('click', () => { init(); });
+    toggleAIBtn.addEventListener('click', () => {
+      vsAI = !vsAI;
+      toggleAIBtn.textContent = 'vs CPU: ' + (vsAI ? 'ON' : 'OFF');
+      init();
+    });
+
+    init();
+  </script>
+</body>
+</html>

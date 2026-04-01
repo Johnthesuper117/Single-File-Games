@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Snake</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #1a1a2e;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      font-family: 'Segoe UI', sans-serif;
+      color: #eee;
+    }
+    h1 { font-size: 2rem; margin-bottom: 0.5rem; color: #4ade80; }
+    #score { font-size: 1.2rem; margin-bottom: 1rem; }
+    canvas {
+      border: 3px solid #4ade80;
+      border-radius: 4px;
+      background: #0f172a;
+    }
+    #msg {
+      margin-top: 1rem;
+      font-size: 1rem;
+      color: #94a3b8;
+    }
+    #restart {
+      margin-top: 0.75rem;
+      padding: 0.5rem 1.5rem;
+      background: #4ade80;
+      color: #0f172a;
+      border: none;
+      border-radius: 6px;
+      font-size: 1rem;
+      cursor: pointer;
+      font-weight: bold;
+      display: none;
+    }
+    #restart:hover { background: #22c55e; }
+    a.back { margin-top: 1.2rem; color: #94a3b8; text-decoration: none; font-size: 0.9rem; }
+    a.back:hover { color: #4ade80; }
+  </style>
+</head>
+<body>
+  <h1>🐍 Snake</h1>
+  <div id="score">Score: 0</div>
+  <canvas id="c" width="400" height="400"></canvas>
+  <div id="msg">Use arrow keys or WASD to move</div>
+  <button id="restart">Restart</button>
+  <a class="back" href="../index.html">← Back to Games</a>
+
+  <script>
+    const canvas = document.getElementById('c');
+    const ctx = canvas.getContext('2d');
+    const scoreEl = document.getElementById('score');
+    const msg = document.getElementById('msg');
+    const restartBtn = document.getElementById('restart');
+
+    const GRID = 20;
+    const COLS = canvas.width / GRID;
+    const ROWS = canvas.height / GRID;
+
+    let snake, dir, nextDir, food, score, running, interval;
+
+    function init() {
+      snake = [{ x: 10, y: 10 }];
+      dir = { x: 1, y: 0 };
+      nextDir = { x: 1, y: 0 };
+      food = randomFood();
+      score = 0;
+      running = true;
+      scoreEl.textContent = 'Score: 0';
+      msg.textContent = 'Use arrow keys or WASD to move';
+      restartBtn.style.display = 'none';
+      clearInterval(interval);
+      interval = setInterval(tick, 120);
+    }
+
+    function randomFood() {
+      let pos;
+      do {
+        pos = { x: Math.floor(Math.random() * COLS), y: Math.floor(Math.random() * ROWS) };
+      } while (snake.some(s => s.x === pos.x && s.y === pos.y));
+      return pos;
+    }
+
+    function tick() {
+      dir = nextDir;
+      const head = { x: snake[0].x + dir.x, y: snake[0].y + dir.y };
+
+      if (head.x < 0 || head.x >= COLS || head.y < 0 || head.y >= ROWS ||
+          snake.some(s => s.x === head.x && s.y === head.y)) {
+        gameOver();
+        return;
+      }
+
+      snake.unshift(head);
+      if (head.x === food.x && head.y === food.y) {
+        score++;
+        scoreEl.textContent = 'Score: ' + score;
+        food = randomFood();
+      } else {
+        snake.pop();
+      }
+      draw();
+    }
+
+    function draw() {
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Food
+      ctx.fillStyle = '#f87171';
+      ctx.beginPath();
+      ctx.arc(food.x * GRID + GRID / 2, food.y * GRID + GRID / 2, GRID / 2 - 2, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Snake
+      snake.forEach((seg, i) => {
+        ctx.fillStyle = i === 0 ? '#4ade80' : '#22c55e';
+        ctx.beginPath();
+        ctx.roundRect(seg.x * GRID + 1, seg.y * GRID + 1, GRID - 2, GRID - 2, 4);
+        ctx.fill();
+      });
+    }
+
+    function gameOver() {
+      running = false;
+      clearInterval(interval);
+      msg.textContent = 'Game Over! Final Score: ' + score;
+      restartBtn.style.display = 'inline-block';
+    }
+
+    document.addEventListener('keydown', e => {
+      const map = {
+        ArrowUp: { x: 0, y: -1 }, w: { x: 0, y: -1 }, W: { x: 0, y: -1 },
+        ArrowDown: { x: 0, y: 1 }, s: { x: 0, y: 1 }, S: { x: 0, y: 1 },
+        ArrowLeft: { x: -1, y: 0 }, a: { x: -1, y: 0 }, A: { x: -1, y: 0 },
+        ArrowRight: { x: 1, y: 0 }, d: { x: 1, y: 0 }, D: { x: 1, y: 0 },
+      };
+      const nd = map[e.key];
+      if (nd && !(nd.x === -dir.x && nd.y === -dir.y)) {
+        e.preventDefault();
+        nextDir = nd;
+      }
+    });
+
+    restartBtn.addEventListener('click', init);
+    init();
+    draw();
+  </script>
+</body>
+</html>

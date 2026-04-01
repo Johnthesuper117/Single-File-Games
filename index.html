@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Single-File Games</title>
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: #0f172a;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      color: #e2e8f0;
+      min-height: 100vh;
+    }
+
+    /* ── Header ── */
+    header {
+      background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+      border-bottom: 1px solid #1e293b;
+      padding: 2.5rem 1rem 2rem;
+      text-align: center;
+    }
+    header h1 {
+      font-size: clamp(2rem, 5vw, 3.2rem);
+      font-weight: 800;
+      background: linear-gradient(90deg, #a78bfa, #38bdf8, #4ade80);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      letter-spacing: -0.5px;
+    }
+    header p {
+      margin-top: 0.6rem;
+      color: #64748b;
+      font-size: 1.05rem;
+    }
+
+    /* ── Search ── */
+    #search-wrap {
+      display: flex;
+      justify-content: center;
+      padding: 1.5rem 1rem 0.5rem;
+    }
+    #search {
+      width: 100%;
+      max-width: 400px;
+      padding: 0.65rem 1.1rem;
+      background: #1e293b;
+      border: 1.5px solid #334155;
+      border-radius: 999px;
+      color: #e2e8f0;
+      font-size: 1rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    #search::placeholder { color: #475569; }
+    #search:focus { border-color: #818cf8; }
+
+    /* ── Game Grid ── */
+    main {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 2rem 1.2rem 3rem;
+    }
+    #game-count {
+      font-size: 0.9rem;
+      color: #475569;
+      margin-bottom: 1.2rem;
+      text-align: center;
+    }
+    #grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 1.25rem;
+    }
+
+    /* ── Game Card ── */
+    .card {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 14px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      transition: transform 0.18s, box-shadow 0.18s, border-color 0.18s;
+      text-decoration: none;
+      color: inherit;
+    }
+    .card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5);
+    }
+    .card-banner {
+      height: 130px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 4.5rem;
+      flex-shrink: 0;
+    }
+    .card-body {
+      padding: 1rem 1.1rem 1.2rem;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+    }
+    .card-title {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: #f1f5f9;
+    }
+    .card-desc {
+      font-size: 0.88rem;
+      color: #94a3b8;
+      line-height: 1.45;
+      flex: 1;
+    }
+    .card-meta {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      margin-top: 0.5rem;
+    }
+    .tag {
+      font-size: 0.72rem;
+      padding: 0.2rem 0.6rem;
+      border-radius: 999px;
+      background: #0f172a;
+      color: #64748b;
+      border: 1px solid #334155;
+    }
+    .play-btn {
+      display: inline-block;
+      margin-top: 0.75rem;
+      padding: 0.45rem 1.1rem;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      text-align: center;
+      transition: filter 0.15s;
+      text-decoration: none;
+      color: #0f172a;
+    }
+    .play-btn:hover { filter: brightness(1.1); }
+
+    /* ── Accent colours per card ── */
+    .accent-purple .card-banner { background: linear-gradient(135deg, #2e1065, #4c1d95); }
+    .accent-purple .play-btn   { background: #a78bfa; }
+    .accent-purple:hover       { border-color: #a78bfa; }
+
+    .accent-green .card-banner  { background: linear-gradient(135deg, #052e16, #14532d); }
+    .accent-green .play-btn    { background: #4ade80; }
+    .accent-green:hover        { border-color: #4ade80; }
+
+    .accent-orange .card-banner { background: linear-gradient(135deg, #431407, #7c2d12); }
+    .accent-orange .play-btn   { background: #fb923c; }
+    .accent-orange:hover       { border-color: #fb923c; }
+
+    .accent-sky .card-banner    { background: linear-gradient(135deg, #082f49, #0c4a6e); }
+    .accent-sky .play-btn      { background: #38bdf8; }
+    .accent-sky:hover          { border-color: #38bdf8; }
+
+    .accent-yellow .card-banner { background: linear-gradient(135deg, #422006, #713f12); }
+    .accent-yellow .play-btn   { background: #fbbf24; }
+    .accent-yellow:hover       { border-color: #fbbf24; }
+
+    .accent-pink .card-banner   { background: linear-gradient(135deg, #2e0a3a, #581c87); }
+    .accent-pink .play-btn     { background: #e879f9; }
+    .accent-pink:hover         { border-color: #e879f9; }
+
+    /* ── Empty state ── */
+    #empty {
+      display: none;
+      text-align: center;
+      color: #475569;
+      padding: 3rem 1rem;
+      font-size: 1.05rem;
+      grid-column: 1 / -1;
+    }
+
+    /* ── Footer ── */
+    footer {
+      text-align: center;
+      padding: 1.5rem;
+      color: #334155;
+      font-size: 0.85rem;
+      border-top: 1px solid #1e293b;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>🎮 Single-File Games</h1>
+    <p>Classic browser games — each one a single HTML file, no installs needed.</p>
+  </header>
+
+  <div id="search-wrap">
+    <input id="search" type="search" placeholder="Search games…" aria-label="Search games" />
+  </div>
+
+  <main>
+    <p id="game-count"></p>
+    <div id="grid">
+
+      <!-- Snake -->
+      <a class="card accent-green" href="games/snake.html">
+        <div class="card-banner">🐍</div>
+        <div class="card-body">
+          <div class="card-title">Snake</div>
+          <div class="card-desc">Eat food, grow longer, and don't hit the walls or yourself. A timeless arcade classic.</div>
+          <div class="card-meta">
+            <span class="tag">Arcade</span>
+            <span class="tag">Keyboard</span>
+          </div>
+          <span class="play-btn">▶ Play</span>
+        </div>
+      </a>
+
+      <!-- Tic-Tac-Toe -->
+      <a class="card accent-purple" href="games/tictactoe.html">
+        <div class="card-banner">⭕</div>
+        <div class="card-body">
+          <div class="card-title">Tic-Tac-Toe</div>
+          <div class="card-desc">Play against a friend or challenge the unbeatable minimax AI. Three in a row wins!</div>
+          <div class="card-meta">
+            <span class="tag">Strategy</span>
+            <span class="tag">2-Player</span>
+            <span class="tag">AI</span>
+          </div>
+          <span class="play-btn">▶ Play</span>
+        </div>
+      </a>
+
+      <!-- Memory -->
+      <a class="card accent-orange" href="games/memory.html">
+        <div class="card-banner">🃏</div>
+        <div class="card-body">
+          <div class="card-title">Memory Cards</div>
+          <div class="card-desc">Flip cards and find matching pairs. Test your memory and beat your best move count!</div>
+          <div class="card-meta">
+            <span class="tag">Puzzle</span>
+            <span class="tag">Memory</span>
+          </div>
+          <span class="play-btn">▶ Play</span>
+        </div>
+      </a>
+
+      <!-- Breakout -->
+      <a class="card accent-sky" href="games/breakout.html">
+        <div class="card-banner">🧱</div>
+        <div class="card-body">
+          <div class="card-title">Breakout</div>
+          <div class="card-desc">Keep the ball bouncing with your paddle and smash through all the bricks to win.</div>
+          <div class="card-meta">
+            <span class="tag">Arcade</span>
+            <span class="tag">Mouse</span>
+            <span class="tag">Keyboard</span>
+          </div>
+          <span class="play-btn">▶ Play</span>
+        </div>
+      </a>
+
+      <!-- 2048 -->
+      <a class="card accent-yellow" href="games/2048.html">
+        <div class="card-banner">🔢</div>
+        <div class="card-body">
+          <div class="card-title">2048</div>
+          <div class="card-desc">Slide and merge numbered tiles to reach the 2048 tile. Simple to learn, hard to master.</div>
+          <div class="card-meta">
+            <span class="tag">Puzzle</span>
+            <span class="tag">Swipe</span>
+          </div>
+          <span class="play-btn">▶ Play</span>
+        </div>
+      </a>
+
+      <!-- Minesweeper -->
+      <a class="card accent-pink" href="games/minesweeper.html">
+        <div class="card-banner">💣</div>
+        <div class="card-body">
+          <div class="card-title">Minesweeper</div>
+          <div class="card-desc">Uncover safe squares and flag the mines. Easy, Medium, or Hard — how brave are you?</div>
+          <div class="card-meta">
+            <span class="tag">Logic</span>
+            <span class="tag">Difficulty levels</span>
+          </div>
+          <span class="play-btn">▶ Play</span>
+        </div>
+      </a>
+
+    </div>
+    <div id="empty">No games matched your search.</div>
+  </main>
+
+  <footer>
+    Single-File Games · Each game is a self-contained HTML file
+  </footer>
+
+  <script>
+    const cards = Array.from(document.querySelectorAll('.card'));
+    const searchEl = document.getElementById('search');
+    const gameCountEl = document.getElementById('game-count');
+    const emptyEl = document.getElementById('empty');
+
+    function updateCount(n) {
+      gameCountEl.textContent = n === cards.length
+        ? `${n} games available`
+        : `${n} of ${cards.length} games`;
+    }
+
+    function filterCards(query) {
+      const q = query.trim().toLowerCase();
+      let shown = 0;
+      cards.forEach(card => {
+        const text = card.textContent.toLowerCase();
+        const visible = !q || text.includes(q);
+        card.style.display = visible ? '' : 'none';
+        if (visible) shown++;
+      });
+      emptyEl.style.display = shown === 0 ? 'block' : 'none';
+      updateCount(shown);
+    }
+
+    searchEl.addEventListener('input', e => filterCards(e.target.value));
+    updateCount(cards.length);
+  </script>
+</body>
+</html>
